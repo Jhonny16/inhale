@@ -1,131 +1,110 @@
 # -*- coding: utf-8 -*-
-#################################################################################
-# Author      : Acespritech Solutions Pvt. Ltd. (<www.acespritech.com>)
-# Copyright(c): 2012-Present Acespritech Solutions Pvt. Ltd.
-# All Rights Reserved.
-#
-# This program is copyright property of the author mentioned above.
-# You can`t redistribute it and/or modify it.
-#
-#################################################################################
-from datetime import datetime, date, timedelta
-from odoo import models, api
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
+# Part of BrowseInfo. See LICENSE file for full copyright and licensing details.
 
-import pytz
-import logging
-from pytz import timezone
-
-_logger = logging.getLogger(__name__)
-
+from odoo import fields, models, api, _
+from datetime import date, datetime
+import json
 
 class PosSession(models.Model):
     _inherit = 'pos.session'
 
+    info_amounts = fields.Text(compute="_compute_info_amounts")
 
-    def get_gross_total_currency(self, currency_id):
-        gross_total = 0.0
-        orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-        if self and orders:
-            for order in orders:
-                for line in order.lines:
-                    gross_total += line.qty * (line.price_unit - line.product_id.standard_price)
-        return gross_total
+    @api.depends('payment_method_ids', 'cash_register_balance_start', 'cash_register_id')
+    def _compute_info_amounts(self):
+        self.get_amounts_payments()
 
-    def get_net_gross_total_currency(self, currency_id):
-        net_gross_profit = 0.0
+    def get_amounts_payments(self):
+        for session in self:
+            payments_session = self.env['pos.payment'].search([('session_id', '=', session.id)])
+            array = []
+            if payments_session:
+
+                query = """ select 
+                               ppp.id as ide, ppp."name", sum(pp.amount) as total
+                               from pos_payment pp inner join pos_payment_method ppp on pp.payment_method_id = ppp."id"
+                               where pp.id """
+                if len(payments_session.ids) > 1:
+                    ids = tuple(payments_session.ids)
+                    query += """  in {0} """.format(ids)
+                else:
+                    id = payments_session.id
+                    query += """  = {0} """.format(id)
+                query += """ group by ppp.id, ppp.name"""
+
+                self.env.cr.execute(query)
+                q = self.env.cr.fetchall()
+                if q:
+                    for res in q:
+                        data_json = {
+                            'ide': res[0],
+                            'name': res[1],
+                            'total': res[2],
+                            'session_id': session.id,
+                        }
+                        array.append(data_json)
+            session.info_amounts = json.dumps(array)
+        return array
+
+    def print_report_close_cash(self):
+        datas = {'ids': self.id,
+                 'model': 'pos.session'
+                 }
+        return self.env.ref('aspl_pos_close_session.pos_z_report').report_action(self.id)
+
+
+    def get_amount_total(self):
+        amount_total = 0.0
         if self:
-            net_gross_profit = self.get_gross_total_currency(currency_id) - self.get_total_tax_currency(currency_id)
-        return net_gross_profit
+            if self.order_ids:
+                amount_total = sum(o.amount_total for o in self.order_ids)
 
-    def get_total_sales_currency(self, currency_id):
-        total_price = 0.0
+        return amount_total
+
+    def get_amount_total_sn_taxt(self):
+        amount_total = 0.0
         if self:
-            orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-            for order in orders:
-                total_price += sum([(line.qty * line.price_unit) for line in order.lines])
-        return total_price
+            if self.order_ids:
+                amount_total = sum(o.amount_total - o.amount_tax for o in self.order_ids)
 
-    def exists_orders_currency(self, currency_id):
-        orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-        if orders:
-            return True
-        else:
-            return False
+        return amount_total
 
-    def get_total_tax_currency(self, currency_id):
+    def get_count_sales(self):
+        count = 0
         if self:
-            total_tax = 0.0
-            #pos_order_obj = self.env['pos.order']
-            #total_tax += sum([order.amount_tax for order in pos_order_obj.search([('session_id', '=', self.id),('currency_id','=',currency_id.id)])])
-            orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-            total_tax += sum([order.amount_tax for order in orders])
-        return total_tax
+            count = len(self.order_ids)
 
-    def get_vat_tax_currency(self, currency_id):
-        taxes_info = []
+        return count
+
+    def get_cash_in(self):
+        cash_in = 0.0
+        moves_in = self.env['pos.cash.in.out'].sudo().search([('session_id', '=', self.id),('transaction_type','=','cash_in')])
+        if moves_in:
+            cash_in = sum(ci.amount for ci in moves_in)
+
+        return cash_in
+
+    def get_cash_out(self):
+        cash_out = 0.0
+        moves_out = self.env['pos.cash.in.out'].sudo().search([('session_id', '=', self.id), ('transaction_type', '=', 'cash_out')])
+        if moves_out:
+            cash_out = sum(co.amount for co in moves_out)
+
+        return cash_out
+
+    def get_amount_total_tax(self):
+        amount_tax = 0.0
         if self:
-            orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)            
-            tax_list = [tax.id for order in orders for line in
-                        order.lines.filtered(lambda line: line.tax_ids_after_fiscal_position) for tax in
-                        line.tax_ids_after_fiscal_position]
-            tax_list = list(set(tax_list))
-            for tax in self.env['account.tax'].browse(tax_list):
-                total_tax = 0.00
-                net_total = 0.00
-                for line in self.env['pos.order.line'].search(
-                        [('order_id', 'in', [order.id for order in orders])]).filtered(
-                    lambda line: tax in line.tax_ids_after_fiscal_position):
-                    total_tax += line.price_subtotal * tax.amount / 100
-                    net_total += line.price_subtotal
-                taxes_info.append({
-                    'tax_name': tax.name,
-                    'tax_total': total_tax,
-                    'tax_per': tax.amount,
-                    'net_total': net_total,
-                    'gross_tax': total_tax + net_total
-                })
-        return taxes_info
+            if self.order_ids:
+                amount_tax = sum(o.amount_tax for o in self.order_ids)
 
-    def get_total_discount_currency(self,currency_id):
-        total_discount = 0.0
-        orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-        if self and orders:
-            for order in orders:
-                total_discount += sum([((line.qty * line.price_unit) * line.discount) / 100 for line in order.lines])
-        return total_discount
+        return amount_tax
 
-    def get_total_first_currency(self, currency_id):
-        total = 0.0
+    def get_amount_total_reserved(self):
+        amount_paid = 0.0
         if self:
-            total = (self.get_total_sales_currency(currency_id) + self.get_total_tax_currency(currency_id)) \
-                    - (abs(self.get_total_discount_currency(currency_id)))
-        return total
+            if self.order_ids:
+                o_reserved = self.order_ids.filtered(lambda r:r.state == 'reserved')
+                amount_paid = sum(o.amount_paid for o in o_reserved)
 
-
-    def get_product_category_currency(self, currency_id):
-        product_list = []
-        orders = self.order_ids.filtered(lambda o: o.currency_id.id == currency_id.id)
-        if self and orders:
-            for order in orders:
-                for line in order.lines:
-                    flag = False
-                    product_dict = {}
-                    for lst in product_list:
-                        if line.product_id.pos_categ_id:
-                            if lst.get('pos_categ_id') == line.product_id.pos_categ_id.id:
-                                lst['price'] = lst['price'] + (line.qty * line.price_unit)
-                                flag = True
-                        else:
-                            if lst.get('pos_categ_id') == '':
-                                lst['price'] = lst['price'] + (line.qty * line.price_unit)
-                                flag = True
-                    if not flag:
-                        product_dict.update({
-                            'pos_categ_id': line.product_id.pos_categ_id and line.product_id.pos_categ_id.id or '',
-                            'price': (line.qty * line.price_unit)
-                        })
-                        product_list.append(product_dict)
-        return product_list
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
+        return amount_paid
