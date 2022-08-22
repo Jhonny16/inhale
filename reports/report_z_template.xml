@@ -75,8 +75,8 @@
                                         Total de apertura
                                     </td>
                                     <td class="text-right">
-                                        <span t-esc="o.cash_register_balance_start"
-                                              t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/>
+                                        <span t-esc="o.get_cash_register_balance_start()"
+                                              t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/>
                                     </td>
                                 </tr>
                                 <tr>
@@ -145,7 +145,7 @@
                                         Total cierre
                                     </td>
                                     <td class="text-right">
-                                        <span t-esc="o.cash_register_balance_end_real"
+                                        <span t-esc="o.get_cash_register_balance_end_real()"
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
@@ -154,7 +154,7 @@
                                         Total
                                     </td>
                                     <td class="text-right">
-                                        <span t-esc="o.get_total_closing()"
+                                        <span t-esc="o.get_total_closing_currency_company()"
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
@@ -163,7 +163,7 @@
                                         Diferencia
                                     </td>
                                      <td class="text-right">
-                                        <span t-esc="o.cash_real_difference"
+                                        <span t-esc="o.get_cash_real_difference()"
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
@@ -173,7 +173,7 @@
                                 <tr>
                                     <td colspan="2">En caja:</td>
                                 </tr>
-                                <tr t-foreach="o.get_journal_amount()" t-as="l">
+                                <tr t-foreach="o.get_journal_amount_currency_company()" t-as="l">
                                     <t t-if="l.get('journal_id')">
                                         <td class="text-left">
                                             <span t-esc="l.get('journal_id')"/>
@@ -186,7 +186,7 @@
                             </table>
                             <hr/>
                             <table style="width:100%;margin-top:13px;">
-                                <tr t-foreach="o.get_amounts_payments()" t-as="p">
+                                <tr t-foreach="o.get_amounts_payments_currency_company()" t-as="p">
                                     <td class="text-left">
                                         <span t-esc="p['name']"/>
                                     </td>

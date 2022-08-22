@@ -5,7 +5,7 @@
     'description': """
        1. Personalizaciones.
     """,
-    'version': '14.0.0.2',
+    'version': '14.0.0.3',
     "author": "Jhonny Mack Merino Samillán",
     'license': 'LGPL-3',
     "depends": ['base','bi_pos_multi_currency','aspl_pos_close_session'],
