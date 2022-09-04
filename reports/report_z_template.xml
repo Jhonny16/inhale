@@ -88,7 +88,7 @@
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
-                                 <tr>
+                                <tr>
                                     <td class="text-left">
                                         Ventas con Impuesto
                                     </td>
@@ -162,7 +162,7 @@
                                     <td class="text-left">
                                         Diferencia
                                     </td>
-                                     <td class="text-right">
+                                    <td class="text-right">
                                         <span t-esc="o.get_cash_real_difference()"
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
@@ -171,7 +171,7 @@
 
                             <table style="width:100%;margin-top:13px;">
                                 <tr>
-                                    <td colspan="2">En caja:</td>
+                                    <td colspan="3">En caja:</td>
                                 </tr>
                                 <tr t-foreach="o.get_journal_amount_currency_company()" t-as="l">
                                     <t t-if="l.get('journal_id')">
@@ -179,36 +179,71 @@
                                             <span t-esc="l.get('journal_id')"/>
                                         </td>
                                     </t>
+                                    <td class="text-right" style="color: #14dab6">
+                                        <span t-esc="l.get('other_amount')" t-options='{"widget": "monetary", "display_currency": l.get("other_currency")}'/>
+                                    </td>
                                     <td class="text-right">
                                         <span t-esc="l.get('ending_bal')" t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
                             </table>
                             <hr/>
+                            <t t-set="total_amount" t-value="0"/>
+                            <t t-set="other_currency" t-value="res_company.currency_id"/>
                             <table style="width:100%;margin-top:13px;">
                                 <tr t-foreach="o.get_amounts_payments_currency_company()" t-as="p">
                                     <td class="text-left">
                                         <span t-esc="p['name']"/>
                                     </td>
                                     <td class="text-right">
+                                        <span t-esc="p['other_amount']" t-options='{"widget": "monetary", "display_currency": p["other_currency_id"]}'
+                                              style="color: #14dab6"/>
+                                        <t t-set="total_amount" t-value="total_amount + p['other_amount']"/>
+                                        <t t-set="other_currency" t-value="p['other_currency_id']"/>
+                                    </td>
+                                    <td class="text-right">
                                         <span t-esc="p['total']"
                                               t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td colspan="3">
+                                        <hr style="border-top: 1px dashed #c0c2c3;"/>
+                                    </td>
+                                </tr>
+                                <tr t-if="o.get_product_category()" style="color:#0b8299">
+                                    <td>
+                                        <strong>TOTAL:</strong>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-esc="total_amount" t-options='{"widget": "monetary", "display_currency": other_currency}'/>
+                                    </td>
+                                    <td style="width:50%; !important" class="text-right">
+                                        <span t-esc="o.get_amount_total()"
+                                              t-options='{"widget": "monetary", "display_currency": res_company.currency_id}'/>
+                                    </td>
+                                </tr>
                             </table>
-                            <t t-if="o.get_product_category()">
-                                <table style="width:100%;">
+                           <!-- <t t-if="o.get_product_category()">
+                                <table style="width:100%;font-size:12.5px">
                                     <tr>
-                                        <td style="width:50%;">
+                                        <td colspan="3">
+                                            <br/>
                                         </td>
-                                        <td style="width:50%; !important" class="text-right">
-                                            ===========
-                                        </td>
+                                        &lt;!&ndash;                                        <td style="width:50%;">&ndash;&gt;
+                                        &lt;!&ndash;                                        </td>&ndash;&gt;
+                                        &lt;!&ndash;                                        <td style="width:50%; !important" class="text-right">&ndash;&gt;
+                                        &lt;!&ndash;                                            ===========&ndash;&gt;
+                                        &lt;!&ndash;                                        </td>&ndash;&gt;
                                     </tr>
                                 </table>
                                 <table style="width:100%">
                                     <tr>
-                                        <td style="width:50%;">
+                                        <td>
+                                            <strong>Total:</strong>
+                                        </td>
+                                        <td style="color: #14dab6">
+                                            <span t-esc="total_amount"/>
                                         </td>
                                         <td style="width:50%; !important" class="text-right">
                                             <span t-esc="o.get_amount_total()"
@@ -216,7 +251,7 @@
                                         </td>
                                     </tr>
                                 </table>
-                            </t>
+                            </t>-->
                         </t>
                     </div>
                 </t>

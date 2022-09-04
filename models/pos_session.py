@@ -74,13 +74,15 @@ class PosSession(models.Model):
                     payments = payments_session.filtered(lambda p:p.payment_method_id.id == method.id)
 
                     method_amount = 0.0
+                    other_amount = 0.0
                     for payment in payments:
                         currency_id = payment.currency_id
                         amount = payment.amount
                         if currency_id != self.company_id.currency_id:
+                            other_currency_id = currency_id
+                            other_amount += amount
                             tc = currency_id._convert(1, self.company_id.currency_id, self.company_id, self.date_close())
                             amount = amount * tc
-
                         method_amount += amount
 
                     data_json = {
@@ -88,6 +90,8 @@ class PosSession(models.Model):
                         'name': method.name,
                         'total': method_amount,
                         'session_id': session.id,
+                        'other_currency_id': other_currency_id,
+                        'other_amount': other_amount
                     }
                     array.append(data_json)
 
@@ -216,12 +220,18 @@ class PosSession(models.Model):
                 journal_dict = {}
                 currency_id = statement.currency_id
                 balance_end_real = statement.balance_end_real or 0.0
-
+                other_amount = 0.0
+                other_currency = False
                 if currency_id != self.company_id.currency_id:
+                    other_amount += balance_end_real
+                    other_currency = currency_id
                     tc = currency_id._convert(1, self.company_id.currency_id, self.company_id, self.date_close())
                     balance_end_real = self.company_id.currency_id.round(balance_end_real * tc)
 
                 journal_dict.update({'journal_id': statement.journal_id and statement.journal_id.name or '',
-                                     'ending_bal': balance_end_real})
+                                     'ending_bal': balance_end_real,
+                                     'other_amount': other_amount,
+                                     'other_currency': other_currency,
+                                     })
                 journal_list.append(journal_dict)
         return journal_list

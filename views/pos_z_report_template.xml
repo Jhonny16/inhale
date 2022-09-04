@@ -74,8 +74,8 @@
                                     Total de apertura
                                 </td>
                                 <td class="text-right">
-                                    <span t-esc="o.cash_register_balance_start"
-                                          t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                    <span t-esc="o.get_cash_register_balance_start()"
+                                          t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/>
                                 </td>
                             </tr>
                         </table>
@@ -307,21 +307,23 @@
                             </tr>
                         </table>
                         <table style="width:100%;margin-top:15px;font-size:12px">
-                            <tr>
-                                <td colspan="2">En caja:</td>
-                            </tr>
-                            <tr t-foreach="o.get_journal_amount()" t-as="l">
-                                <t t-if="l.get('journal_id')">
-                                    <td class="text-left">
-                                        <span t-esc="l.get('journal_id')"/>
-                                    </td>
-                                </t>
-                                <td class="text-right">
-                                    <span t-esc="l.get('ending_bal')"
-                                          t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
-                                </td>
-                            </tr>
                         </table>
+<!--                        <table style="width:100%;margin-top:15px;font-size:12px">-->
+<!--                            <tr>-->
+<!--                                <td colspan="2">En caja:</td>-->
+<!--                            </tr>-->
+<!--                            <tr t-foreach="o.get_journal_amount()" t-as="l">-->
+<!--                                <t t-if="l.get('journal_id')">-->
+<!--                                    <td class="text-left">-->
+<!--                                        <span t-esc="l.get('journal_id')"/>-->
+<!--                                    </td>-->
+<!--                                </t>-->
+<!--                                <td class="text-right">-->
+<!--                                    <span t-esc="l.get('ending_bal')"-->
+<!--                                          t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>-->
+<!--                                </td>-->
+<!--                            </tr>-->
+<!--                        </table>-->
                         <t t-if="o.get_product_category()">
                             <div class="text-left" style="margin-top:10px !important;font-size:12px">
                                 Departamento de ventas:
