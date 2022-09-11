@@ -5,7 +5,7 @@
     'description': """
        1. Personalizaciones.
     """,
-    'version': '14.0.0.3',
+    'version': '14.0.0.4',
     "author": "Jhonny Mack Merino Samillán",
     'license': 'LGPL-3',
     "depends": ['base','bi_pos_multi_currency','aspl_pos_close_session'],
@@ -13,6 +13,7 @@
         #'views/pos_z_report_template.xml',
         'reports/report_z_template.xml',
         'views/pos_session_view.xml',
+        'views/product_views.xml',
 
     ],
 }
